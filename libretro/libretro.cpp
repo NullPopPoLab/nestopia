@@ -602,14 +602,14 @@ static void update_input()
          bool pressed_change    = false;
          bool pressed_eject     = false;
 
-         int16_t ret;
+         int32_t ret;
 
          if (libretro_supports_bitmasks)
             ret = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
          else
          {
             ret = 0;
-            for (unsigned i = 0; i < (RETRO_DEVICE_ID_JOYPAD_R3 + 1); i++)
+            for (unsigned i = 0; i < (RETRO_DEVICE_ID_JOYPAD_MENU + 1); i++)
                ret |= input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, i) ? (1 << i) : 0;
          }
 
@@ -623,7 +623,7 @@ static void update_input()
          /* Player 0 needs some extra checks */
          if (p == 0)
          {
-            pressed_mic      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L3);
+            pressed_mic      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_MENU);
             pressed_coin1    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
             pressed_coin2    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2);
          }
@@ -1335,7 +1335,7 @@ bool retro_load_game(const struct retro_game_info *info)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Eject Disk" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(VSSystem) Coin 1" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "(VSSystem) Coin 2" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "(Famicom) Microphone" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MENU,  "(Famicom) Microphone" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
