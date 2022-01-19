@@ -68,7 +68,7 @@ static bool overscan_h;
 static bool libretro_supports_option_categories = false;
 static unsigned aspect_ratio_mode;
 static unsigned tpulse;
-static int fds_selected=-1;
+static int fds_selected=0;
 
 static enum {
    SHOW_CROSSHAIR_DISABLED,
@@ -223,7 +223,8 @@ static bool disk_set_eject_state( bool ejected )
 		fds->EjectDisk();
 	}
 	else{
-		if(fds_selected>=0)fds->InsertDisk(fds_selected>>1, fds_selected&1);
+		fds->InsertDisk(fds_selected>>1, fds_selected&1);
+		return fds->IsAnyDiskInserted();
 	}    
 	return true;
 }
@@ -240,7 +241,7 @@ static bool disk_set_image_index(unsigned index)
 
 unsigned disk_get_image_index(void)
 {
-	return (fds_selected<0)?0:fds_selected;
+	return fds_selected;
 }
 
 static unsigned disk_get_num_images(void)
@@ -550,7 +551,7 @@ void retro_reset(void)
       fds->EjectDisk();
       if (fds_auto_insert)
          fds->InsertDisk(0, 0);
-      fds_selected=fds->GetCurrentDiskSide();
+      if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
    }
 }
 
@@ -704,7 +705,7 @@ static void update_input()
                   fds->InsertDisk(0, 0);
                else if (fds->CanChangeDiskSide())
                   fds->ChangeSide();
-               fds_selected=fds->GetCurrentDiskSide();
+               if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
             }
             prevL = curL;
             
@@ -716,7 +717,7 @@ static void update_input()
                int currdisk = fds->GetCurrentDisk();
                fds->EjectDisk();
                fds->InsertDisk(!currdisk, 0);
-               fds_selected=fds->GetCurrentDiskSide();
+               if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
             }
             prevR = curR;
          }
@@ -1567,7 +1568,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
    if (fds_auto_insert && machine->Is(Nes::Api::Machine::DISK)){
       fds->InsertDisk(0, 0);
-      fds_selected=fds->GetCurrentDiskSide();
+      if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
    }
    
    video = new Api::Video::Output(video_buffer, video_width * sizeof(uint32_t));
