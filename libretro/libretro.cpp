@@ -240,7 +240,7 @@ static bool disk_set_image_index(unsigned index)
 
 unsigned disk_get_image_index(void)
 {
-	return fds_selected;
+	return (fds_selected<0)?0:fds_selected;
 }
 
 static unsigned disk_get_num_images(void)
