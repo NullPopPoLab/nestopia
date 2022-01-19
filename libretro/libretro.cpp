@@ -217,6 +217,48 @@ static const byte nes_classic_fbx_fs_palette[64][3] =
 int crossx = 0;
 int crossy = 0;
 
+static bool disk_set_eject_state( bool ejected )
+{
+	if(ejected){
+		fds->EjectDisk();
+	}
+	else{
+		if(fds_selected>=0)fds->InsertDisk(fds_selected>>1, fds_selected&1);
+	}    
+	return true;
+}
+
+static bool disk_get_eject_state(void)
+{
+	return !fds->IsAnyDiskInserted();
+}
+
+static bool disk_set_image_index(unsigned index)
+{
+	fds_selected=index;
+}
+
+unsigned disk_get_image_index(void)
+{
+	return fds_selected;
+}
+
+static unsigned disk_get_num_images(void)
+{
+	return fds->GetNumSides();
+}
+
+static struct retro_disk_control_callback disk_interface =
+{
+	disk_set_eject_state,
+	disk_get_eject_state,
+	disk_get_image_index,
+	disk_set_image_index,
+	disk_get_num_images,
+	0,
+	0,
+};
+
 #define CROSSHAIR_SIZE 3
 
 void draw_crosshair(int x, int y)
@@ -366,6 +408,8 @@ void retro_init(void)
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
+
+   environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_interface);
 
    check_system_specs();
 }
@@ -1686,45 +1730,3 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
       part = strtok(NULL,"+,;._ ");
    }
 }
-
-static bool disk_set_eject_state( bool ejected )
-{
-	if(ejected){
-		fds->EjectDisk();
-	}
-	else{
-		if(fds_selected>=0)fds->InsertDisk(fds_selected>>1, fds_selected&1);
-	}    
-	return true;
-}
-
-static bool disk_get_eject_state(void)
-{
-	return !fds->IsAnyDiskInserted();
-}
-
-static bool disk_set_image_index(unsigned index)
-{
-	fds_selected=index;
-}
-
-unsigned disk_get_image_index(void)
-{
-	return fds_selected;
-}
-
-static unsigned disk_get_num_images(void)
-{
-	return fds->GetNumSides();
-}
-
-static struct retro_disk_control_callback disk_interface =
-{
-	disk_set_eject_state,
-	disk_get_eject_state,
-	disk_get_image_index,
-	disk_set_image_index,
-	disk_get_num_images,
-	0,
-	0,
-};
