@@ -68,6 +68,7 @@ static bool overscan_h;
 static bool libretro_supports_option_categories = false;
 static unsigned aspect_ratio_mode;
 static unsigned tpulse;
+static int fds_selected=0;
 
 static enum {
    SHOW_CROSSHAIR_DISABLED,
@@ -215,6 +216,50 @@ static const byte nes_classic_fbx_fs_palette[64][3] =
 
 int crossx = 0;
 int crossy = 0;
+
+static bool disk_set_eject_state( bool ejected )
+{
+	if(ejected){
+		fds->EjectDisk();
+	}
+	else{
+		fds->InsertDisk(fds_selected>>1, fds_selected&1);
+		return fds->IsAnyDiskInserted();
+	}    
+	return true;
+}
+
+static bool disk_get_eject_state(void)
+{
+	return !fds->IsAnyDiskInserted();
+}
+
+static bool disk_set_image_index(unsigned index)
+{
+	fds_selected=index;
+	return true;
+}
+
+unsigned disk_get_image_index(void)
+{
+	return fds_selected;
+}
+
+static unsigned disk_get_num_images(void)
+{
+	return fds->GetNumSides();
+}
+
+static struct retro_disk_control_callback disk_interface =
+{
+	disk_set_eject_state,
+	disk_get_eject_state,
+	disk_get_image_index,
+	disk_set_image_index,
+	disk_get_num_images,
+	0,
+	0,
+};
 
 #define CROSSHAIR_SIZE 3
 
@@ -366,6 +411,8 @@ void retro_init(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
 
+   environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_interface);
+
    check_system_specs();
 }
 
@@ -505,6 +552,7 @@ void retro_reset(void)
       fds->EjectDisk();
       if (fds_auto_insert)
          fds->InsertDisk(0, 0);
+      if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
    }
 }
 
@@ -599,8 +647,10 @@ static void update_input()
          bool pressed_mic       = false;
          bool pressed_coin1     = false;
          bool pressed_coin2     = false;
+#if 0
          bool pressed_change    = false;
          bool pressed_eject     = false;
+#endif
 
          int32_t ret;
 
@@ -628,8 +678,10 @@ static void update_input()
             pressed_coin2    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2);
          }
 
+#if 0
          pressed_change      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
          pressed_eject       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
+#endif
       
          if (tstate) tstate--; else tstate = tpulse;
          
@@ -642,6 +694,7 @@ static void update_input()
          if (pressed_coin2)
             input->vsSystem.insertCoin |= Core::Input::Controllers::VsSystem::COIN_2;
             
+#if 0
          if (machine->Is(Nes::Api::Machine::DISK))
          {
             bool curL         = pressed_change;
@@ -653,6 +706,7 @@ static void update_input()
                   fds->InsertDisk(0, 0);
                else if (fds->CanChangeDiskSide())
                   fds->ChangeSide();
+               if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
             }
             prevL = curL;
             
@@ -664,9 +718,11 @@ static void update_input()
                int currdisk = fds->GetCurrentDisk();
                fds->EjectDisk();
                fds->InsertDisk(!currdisk, 0);
+               if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
             }
             prevR = curR;
          }
+#endif
       }
       else if (connected_controller == Api::Input::PADDLE)
       {
@@ -1331,9 +1387,9 @@ bool retro_load_game(const struct retro_game_info *info)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(FDS) Disk Side Change" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Eject Disk" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(VSSystem) Coin 1" },
+//      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
+//      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(VSSystem) Coin 1" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "(VSSystem) Coin 2" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MENU,  "(Famicom) Microphone" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
@@ -1347,8 +1403,8 @@ bool retro_load_game(const struct retro_game_info *info)
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(FDS) Disk Side Change" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Eject Disk" },
+//      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
+//      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
@@ -1360,8 +1416,8 @@ bool retro_load_game(const struct retro_game_info *info)
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(FDS) Disk Side Change" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Eject Disk" },
+//      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
+//      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
@@ -1373,8 +1429,8 @@ bool retro_load_game(const struct retro_game_info *info)
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(FDS) Disk Side Change" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Eject Disk" },
+//      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
+//      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
@@ -1511,8 +1567,10 @@ bool retro_load_game(const struct retro_game_info *info)
 
    check_variables();
 
-   if (fds_auto_insert && machine->Is(Nes::Api::Machine::DISK))
+   if (fds_auto_insert && machine->Is(Nes::Api::Machine::DISK)){
       fds->InsertDisk(0, 0);
+      if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
+   }
    
    video = new Api::Video::Output(video_buffer, video_width * sizeof(uint32_t));
    
