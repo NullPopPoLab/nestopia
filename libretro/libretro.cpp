@@ -596,20 +596,20 @@ static void update_input()
          input->pad[p].buttons = 0;
          
          static unsigned tstate = 2;
-         bool pressed_l3        = false;
-         bool pressed_l2        = false;
-         bool pressed_r2        = false;
-         bool pressed_l         = false;
-         bool pressed_r         = false;
+         bool pressed_mic       = false;
+         bool pressed_coin1     = false;
+         bool pressed_coin2     = false;
+         bool pressed_change    = false;
+         bool pressed_eject     = false;
 
-         int16_t ret;
+         int32_t ret;
 
          if (libretro_supports_bitmasks)
             ret = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
          else
          {
             ret = 0;
-            for (unsigned i = 0; i < (RETRO_DEVICE_ID_JOYPAD_R3 + 1); i++)
+            for (unsigned i = 0; i < (RETRO_DEVICE_ID_JOYPAD_MENU + 1); i++)
                ret |= input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, i) ? (1 << i) : 0;
          }
 
@@ -623,28 +623,28 @@ static void update_input()
          /* Player 0 needs some extra checks */
          if (p == 0)
          {
-            pressed_l3       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L3);
-            pressed_l2       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L2);
-            pressed_r2       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2);
+            pressed_mic      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_MENU);
+            pressed_coin1    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L2);
+            pressed_coin2    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2);
          }
 
-         pressed_l           = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
-         pressed_r           = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
+         pressed_change      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
+         pressed_eject       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
       
          if (tstate) tstate--; else tstate = tpulse;
          
-         if (pressed_l3)
+         if (pressed_mic)
             input->pad[1].mic |= 0x04;
          
-         if (pressed_l2)
+         if (pressed_coin1)
             input->vsSystem.insertCoin |= Core::Input::Controllers::VsSystem::COIN_1;
             
-         if (pressed_r2)
+         if (pressed_coin2)
             input->vsSystem.insertCoin |= Core::Input::Controllers::VsSystem::COIN_2;
             
          if (machine->Is(Nes::Api::Machine::DISK))
          {
-            bool curL         = pressed_l;
+            bool curL         = pressed_change;
             static bool prevL = false;
 
             if (curL && !prevL)
@@ -656,7 +656,7 @@ static void update_input()
             }
             prevL = curL;
             
-            bool curR         = pressed_r;
+            bool curR         = pressed_eject;
             static bool prevR = false;
 
             if (curR && !prevR && (fds->GetNumDisks() > 1))
@@ -1335,7 +1335,7 @@ bool retro_load_game(const struct retro_game_info *info)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(VSSystem) Coin 1" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "(VSSystem) Coin 2" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "(Famicom) Microphone" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MENU,  "(Famicom) Microphone" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
