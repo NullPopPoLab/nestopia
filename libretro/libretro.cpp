@@ -624,12 +624,12 @@ static void update_input()
          if (p == 0)
          {
             pressed_mic      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_MENU);
-            pressed_coin1    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
+            pressed_coin1    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L2);
             pressed_coin2    = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R2);
          }
 
-         pressed_change      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L2);
-         pressed_eject       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
+         pressed_change      = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
+         pressed_eject       = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
       
          if (tstate) tstate--; else tstate = tpulse;
          
