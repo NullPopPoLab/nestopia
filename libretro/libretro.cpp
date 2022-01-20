@@ -237,6 +237,7 @@ static bool disk_get_eject_state(void)
 static bool disk_set_image_index(unsigned index)
 {
 	fds_selected=index;
+	return true;
 }
 
 unsigned disk_get_image_index(void)
