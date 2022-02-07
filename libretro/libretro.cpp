@@ -283,7 +283,7 @@ static struct retro_disk_control_ext2_callback disk_interface =
 	disk_get_num_drives,
 	0, /* set_drive_eject_state */
 	0, /* get_drive_eject_state */
-	get_drive_image_index
+	disk_get_drive_image_index
 };
 
 #define CROSSHAIR_SIZE 3
