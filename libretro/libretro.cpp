@@ -69,6 +69,9 @@ static bool libretro_supports_option_categories = false;
 static unsigned aspect_ratio_mode;
 static unsigned tpulse;
 
+static float left_stick_speed=0.5f;
+static float right_stick_speed=0.2f;
+
 static enum {
    SHOW_CROSSHAIR_DISABLED,
    SHOW_CROSSHAIR_OFF,
@@ -517,12 +520,14 @@ typedef struct
 static enum {
    ARKANOID_DEVICE_MOUSE,
    ARKANOID_DEVICE_POINTER
+   ARKANOID_DEVICE_STICK
 } arkanoid_device;
 
 static enum {
     ZAPPER_DEVICE_LIGHTGUN,
     ZAPPER_DEVICE_MOUSE,
-    ZAPPER_DEVICE_POINTER
+    ZAPPER_DEVICE_POINTER,
+    ZAPPER_DEVICE_STICK
 } zapper_device;
 
 static keymap bindmap_default[] = {
@@ -681,6 +686,12 @@ static void update_input()
                cur_x = (cur_x + 0x7FFF) * max_x / (0x7FFF * 2);
                input->paddle.button = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
                break;
+            case ARKANOID_DEVICE_STICK:
+               cur_x +=
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X)*left_stick_speed+
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X)*right_stick_speed;
+               input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               break;
          }
 
          if (cur_x < min_x)
@@ -758,6 +769,31 @@ static void update_input()
                   input->zapper.fire = 1;
                }
                break;
+            case ZAPPER_DEVICE_STICK:
+               cur_x += 
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X)*left_stick_speed+
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X)*right_stick_speed;
+               cur_y += 
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y)*left_stick_speed+
+					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y)*right_stick_speed;
+
+               if (cur_x < min_x)
+                  cur_x = min_x;
+               else if (cur_x > max_x)
+                  cur_x = max_x;
+
+               if (cur_y < min_y)
+                  cur_y = min_y;
+               else if (cur_y > max_y)
+                  cur_y = max_y;
+
+               if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               {
+                  input->zapper.x = cur_x;
+                  input->zapper.y = cur_y;
+                  input->zapper.fire = 1;
+               }
+               break;
             default:
                break;
          }
@@ -793,6 +829,8 @@ static void check_variables(void)
          arkanoid_device = ARKANOID_DEVICE_MOUSE;
       if (strcmp(var.value, "pointer") == 0)
          arkanoid_device = ARKANOID_DEVICE_POINTER;
+      if (strcmp(var.value, "stick") == 0)
+         arkanoid_device = ARKANOID_DEVICE_STICK;
    }
 
    var.key = "nestopia_zapper_device";
@@ -804,6 +842,8 @@ static void check_variables(void)
          zapper_device = ZAPPER_DEVICE_MOUSE;
       else if (strcmp(var.value, "pointer") == 0)
          zapper_device = ZAPPER_DEVICE_POINTER;
+      else if (strcmp(var.value, "stick") == 0)
+         zapper_device = ZAPPER_DEVICE_STICK;
    }
 
    var.key = "nestopia_show_crosshair";
@@ -814,6 +854,24 @@ static void check_variables(void)
       else
          show_crosshair = SHOW_CROSSHAIR_OFF;
    }
+
+   var.key = "nestopia_left_stick_speed";
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        left_stick_speed = (float) atof(var.value);
+    }
+    else
+        left_stick_speed = 0.5f;
+
+   var.key = "nestopia_right_stick_speed";
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        right_stick_speed = (float) atof(var.value);
+    }
+    else
+        right_stick_speed = 0.2f;
 
    var.key = "nestopia_button_shift";
    
