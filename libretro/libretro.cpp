@@ -69,8 +69,10 @@ static bool libretro_supports_option_categories = false;
 static unsigned aspect_ratio_mode;
 static unsigned tpulse;
 
-static float left_stick_speed=0.5f;
+static float left_stick_speed=0.8f;
 static float right_stick_speed=0.2f;
+static float analog_stick_deadzone=0.1f;
+float inv_analog_stick_acceleration = 1.0f/2048.0f;
 
 static enum {
    SHOW_CROSSHAIR_DISABLED,
@@ -687,9 +689,33 @@ static void update_input()
                input->paddle.button = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
                break;
             case ARKANOID_DEVICE_STICK:
-               cur_x +=
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X)*left_stick_speed+
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X)*right_stick_speed;
+				static double analog_x=0.0f;
+				int slx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int srx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
+				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
+
+		        double max = (float)0x8000*inv_analog_stick_acceleration;
+		        double ax=speed_l*slx+speed_r*srx;
+		        double radius=(ax<0)?-ax:ax;
+		        double max1=analog_stick_deadzone*max;
+		        if(radius > max1)
+		        {
+		            // Re-scale analog stick range to negate deadzone (makes slow movements possible)
+		            double radius3 = radius - max1*(max/(max - max1));
+		            double dr=radius3/radius;
+
+		            // Convert back to cartesian coordinates
+		            ax *= dr;
+		        }
+				else{
+					ax=0;
+				}
+
+				analog_x+=ax;
+
+               cur_x = analog_x;
+
                input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
@@ -770,22 +796,50 @@ static void update_input()
                }
                break;
             case ZAPPER_DEVICE_STICK:
-               cur_x += 
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X)*left_stick_speed+
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X)*right_stick_speed;
-               cur_y += 
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y)*left_stick_speed+
-					input_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y)*right_stick_speed;
+				static double analog_x=0.0f,analog_y=0.0f;
+				int slx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int sly = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+				int srx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int sry = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
+				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
-               if (cur_x < min_x)
-                  cur_x = min_x;
-               else if (cur_x > max_x)
-                  cur_x = max_x;
+		        double max = (float)0x8000*inv_analog_stick_acceleration;
+		        double ax=speed_l*slx+speed_r*srx;
+		        double ay=speed_l*sly+speed_r*sry;
+		        double radius2=ax*ax+ay*ay;
+		        double max1=analog_stick_deadzone*max;
+		        double max2=max1*max1;
+		        if(radius2 > max2)
+		        {
+		            // Re-scale analog stick range to negate deadzone (makes slow movements possible)
+		            double radius=sqrt(radius2);
+		            double radius3 = radius - max1*(max/(max - max1));
+		            double dr=radius3/radius;
 
-               if (cur_y < min_y)
-                  cur_y = min_y;
-               else if (cur_y > max_y)
-                  cur_y = max_y;
+		            // Convert back to cartesian coordinates
+		            ax *= dr;
+		            ay *= dr;
+		        }
+				else{
+					ax=ay=0;
+				}
+
+				analog_x+=ax;
+				analog_y+=ay;
+
+               if (analog_x < min_x)
+                  analog_x = min_x;
+               else if (analog_x > max_x)
+                  analog_x = max_x;
+
+               if (analog_y < min_y)
+                  analog_y = min_y;
+               else if (analog_y > max_y)
+                  analog_y = max_y;
+
+               cur_x = analog_x;
+               cur_y = analog_y;
 
                if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
@@ -859,19 +913,28 @@ static void check_variables(void)
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        left_stick_speed = (float) atof(var.value);
+        left_stick_speed = var.value;
     }
     else
-        left_stick_speed = 0.5f;
+        left_stick_speed = 0.8f;
 
    var.key = "nestopia_right_stick_speed";
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        right_stick_speed = (float) atof(var.value);
+        right_stick_speed = var.value;
     }
     else
         right_stick_speed = 0.2f;
+
+   var.key = "nestopia_stick_deadzone";
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+    {
+        analog_stick_deadzone = var.value;
+    }
+    else
+        analog_stick_deadzone = 0.1f;
 
    var.key = "nestopia_button_shift";
    
