@@ -848,8 +848,6 @@ static void update_input()
                   input->zapper.fire = 1;
                }
                break;
-            default:
-               break;
          }
 
          if (cur_x > max_x) { crossx = max_x; }
@@ -913,7 +911,7 @@ static void check_variables(void)
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        left_stick_speed = var.value;
+        left_stick_speed = atof(var.value);
     }
     else
         left_stick_speed = 0.8f;
@@ -922,7 +920,7 @@ static void check_variables(void)
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        right_stick_speed = var.value;
+        right_stick_speed = atof(var.value);
     }
     else
         right_stick_speed = 0.2f;
@@ -931,7 +929,7 @@ static void check_variables(void)
 
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
     {
-        analog_stick_deadzone = var.value;
+        analog_stick_deadzone = atof(var.value);
     }
     else
         analog_stick_deadzone = 0.1f;
