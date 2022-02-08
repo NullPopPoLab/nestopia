@@ -33,11 +33,8 @@
 
 #define RETRO_DEVICE_AUTO RETRO_DEVICE_JOYPAD
 #define RETRO_DEVICE_GAMEPAD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0)
+#define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
 #define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_POINTER, 0)
-#define RETRO_DEVICE_ARKANOID_MOUSE RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
-#define RETRO_DEVICE_ZAPPER_MOUSE RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 1)
-#define RETRO_DEVICE_ARKANOID_STICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
-#define RETRO_DEVICE_ZAPPER_STICK RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1)
 
 using namespace Nes;
 
@@ -448,21 +445,13 @@ void retro_set_environment(retro_environment_t cb)
    static const struct retro_controller_description port1[] = {
       { "Auto", RETRO_DEVICE_AUTO },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
-      { "Arkanoid with mouse", RETRO_DEVICE_ARKANOID_MOUSE },
-      { "Arkanoid with analog stick", RETRO_DEVICE_ARKANOID_STICK },
-      { "Zapper", RETRO_DEVICE_ZAPPER },
-      { "Zapper with mouse", RETRO_DEVICE_ZAPPER_MOUSE },
-      { "Zapper with analog stick", RETRO_DEVICE_ZAPPER_STICK },
       { NULL, 0 },
    };
    static const struct retro_controller_description port2[] = {
       { "Auto", RETRO_DEVICE_AUTO },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
-      { "Arkanoid with mouse", RETRO_DEVICE_ARKANOID_MOUSE },
-      { "Arkanoid with analog stick", RETRO_DEVICE_ARKANOID_STICK },
+      { "Arkanoid", RETRO_DEVICE_ARKANOID },
       { "Zapper", RETRO_DEVICE_ZAPPER },
-      { "Zapper with mouse", RETRO_DEVICE_ZAPPER_MOUSE },
-      { "Zapper with analog stick", RETRO_DEVICE_ZAPPER_STICK },
       { NULL, 0 },
    };
    static const struct retro_controller_description port3[] = {
@@ -477,8 +466,8 @@ void retro_set_environment(retro_environment_t cb)
    };
 
    static const struct retro_controller_info ports[] = {
-      { port1, 7 },
-      { port2, 7 },
+      { port1, 2 },
+      { port2, 4 },
       { port3, 2 },
       { port4, 2 },
       { NULL, 0 },
@@ -600,13 +589,10 @@ static void update_input()
          case RETRO_DEVICE_GAMEPAD:
             Api::Input(emulator).ConnectController(p, (Api::Input::Type) (p + 1));
             break;
-         case RETRO_DEVICE_ARKANOID_MOUSE:
-         case RETRO_DEVICE_ARKANOID_STICK:
+         case RETRO_DEVICE_ARKANOID:
             Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
             break;
          case RETRO_DEVICE_ZAPPER:
-         case RETRO_DEVICE_ZAPPER_MOUSE:
-         case RETRO_DEVICE_ZAPPER_STICK:
             Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
             break;
       }
