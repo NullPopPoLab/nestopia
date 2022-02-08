@@ -521,7 +521,7 @@ typedef struct
 
 static enum {
    ARKANOID_DEVICE_MOUSE,
-   ARKANOID_DEVICE_POINTER
+   ARKANOID_DEVICE_POINTER,
    ARKANOID_DEVICE_STICK
 } arkanoid_device;
 
@@ -718,7 +718,6 @@ static void update_input()
 
                input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
-			}
          }
 
          if (cur_x < min_x)
