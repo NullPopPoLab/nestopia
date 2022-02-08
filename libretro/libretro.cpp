@@ -442,6 +442,7 @@ void retro_set_environment(retro_environment_t cb)
    libretro_set_core_options(environ_cb,
          &libretro_supports_option_categories);
 
+#if 0
    static const struct retro_controller_description port1[] = {
       { "Auto", RETRO_DEVICE_AUTO },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
@@ -474,6 +475,7 @@ void retro_set_environment(retro_environment_t cb)
    };
 
    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
+#endif
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
