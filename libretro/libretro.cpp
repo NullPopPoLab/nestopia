@@ -71,7 +71,7 @@ static unsigned tpulse;
 
 static float left_stick_speed=0.8f;
 static float right_stick_speed=0.2f;
-static float analog_stick_deadzone=0.1f;
+static float analog_stick_deadzone=0.05f;
 float inv_analog_stick_acceleration = 1.0f/2048.0f;
 
 static enum {
@@ -716,7 +716,7 @@ static void update_input()
 
                cur_x = analog_x;
 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               input->paddle.button = input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
 
@@ -841,7 +841,7 @@ static void update_input()
                cur_x = analog_x;
                cur_y = analog_y;
 
-               if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x;
                   input->zapper.y = cur_y;
@@ -932,7 +932,7 @@ static void check_variables(void)
         analog_stick_deadzone = atof(var.value);
     }
     else
-        analog_stick_deadzone = 0.1f;
+        analog_stick_deadzone = 0.05f;
 
    var.key = "nestopia_button_shift";
    
