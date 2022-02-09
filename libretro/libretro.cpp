@@ -453,11 +453,13 @@ void retro_set_environment(retro_environment_t cb)
    };
    static const struct retro_controller_description port3[] = {
 /*      { "Auto", RETRO_DEVICE_AUTO },*/
+      { "None", RETRO_DEVICE_NONE },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
    };
    static const struct retro_controller_description port4[] = {
 /*      { "Auto", RETRO_DEVICE_AUTO },*/
+      { "None", RETRO_DEVICE_NONE },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
    };
