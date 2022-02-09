@@ -612,6 +612,7 @@ static void update_input()
 		switch (main_device)
 		{
 			case MAIN_GAMEPAD:
+			show_crosshair[p] = false;
             Api::Input(emulator).ConnectController(p, (Api::Input::Type) (p + 1));
 			break;
 
@@ -621,6 +622,7 @@ static void update_input()
 			break;
 
 			case MAIN_PADDLE:
+			show_crosshair[p] = false;
             if(p<2)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
             else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
 			break;
@@ -647,9 +649,8 @@ static void update_input()
 #endif
 
       Api::Input::Type connected_controller = Api::Input(emulator).GetConnectedController(p);
-      if (connected_controller == p + 1)
+      if (connected_controller != Api::Input::UNCONNECTED)
       {
-		show_crosshair[p] = false;
          input->pad[p].buttons = 0;
          
          static unsigned tstate = 2;
@@ -725,9 +726,8 @@ static void update_input()
             prevR = curR;
          }
       }
-      else if (connected_controller == Api::Input::PADDLE)
+      if (connected_controller == Api::Input::PADDLE)
       {
-		show_crosshair[p] = false;
          switch (arkanoid_device)
          {
             case ARKANOID_DEVICE_MOUSE:
@@ -851,11 +851,11 @@ static void update_input()
                break;
             case ZAPPER_DEVICE_STICK:{
 				static double analog_x[4]={0,0,0,0},analog_y[4]={0,0,0,0};
-				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int sly = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
-				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
-				int sry = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
-                if(slx||sly||srx||sry)show_crosshair[p] = false;
+				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int sly = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int sry = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+                if(slx||sly||srx||sry)show_crosshair[p] = enable_crosshair;
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -896,7 +896,7 @@ static void update_input()
                cur_x[p] = analog_x[p];
                cur_y[p] = analog_y[p];
 
-               if (input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
