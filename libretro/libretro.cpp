@@ -813,7 +813,7 @@ static void update_input()
             case ZAPPER_DEVICE_MOUSE:
                int mx=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
                int my=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
-               if(mx || my)show_crosshair[p] = enable_closshair;
+               if(mx || my)show_crosshair[p] = enable_crosshair;
                cur_x[p] += mx;
                cur_y[p] += my;
 
