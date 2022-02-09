@@ -31,7 +31,7 @@
 #define NES_4_3_DAR (4.0 / 3.0);
 #define SAMPLERATE 48000
 
-#define RETRO_DEVICE_AUTO RETRO_DEVICE_JOYPAD
+/*#define RETRO_DEVICE_AUTO RETRO_DEVICE_JOYPAD*/
 #define RETRO_DEVICE_GAMEPAD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0)
 #define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
 #define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_POINTER, 0)
@@ -443,33 +443,34 @@ void retro_set_environment(retro_environment_t cb)
          &libretro_supports_option_categories);
 
    static const struct retro_controller_description port1[] = {
-      { "Auto", RETRO_DEVICE_AUTO },
+/*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
    };
    static const struct retro_controller_description port2[] = {
-      { "Auto", RETRO_DEVICE_AUTO },
+/*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
-      { "Arkanoid", RETRO_DEVICE_ARKANOID },
-      { "Zapper", RETRO_DEVICE_ZAPPER },
       { NULL, 0 },
    };
    static const struct retro_controller_description port3[] = {
-      { "Auto", RETRO_DEVICE_AUTO },
+/*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
+      { "Zapper", RETRO_DEVICE_ZAPPER },
+      { "Arkanoid", RETRO_DEVICE_ARKANOID },
+      { "None", RETRO_DEVICE_NONE },
       { NULL, 0 },
    };
    static const struct retro_controller_description port4[] = {
-      { "Auto", RETRO_DEVICE_AUTO },
+/*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
    };
 
    static const struct retro_controller_info ports[] = {
-      { port1, 2 },
-      { port2, 4 },
-      { port3, 2 },
-      { port4, 2 },
+      { port1, 1 },
+      { port2, 1 },
+      { port3, 4 },
+      { port4, 1 },
       { NULL, 0 },
    };
 
@@ -580,9 +581,9 @@ static void update_input()
    {
       switch (input_type[p])
       {
-         case  RETRO_DEVICE_AUTO:
+/*         case  RETRO_DEVICE_AUTO:
             Api::Input(emulator).AutoSelectController(p);
-            break;
+            break;*/
          case RETRO_DEVICE_NONE:
             Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
             break;
@@ -680,8 +681,8 @@ static void update_input()
          switch (arkanoid_device)
          {
             case ARKANOID_DEVICE_MOUSE:
-               cur_x += input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+               cur_x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
+               input->paddle.button = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
                break;
             case ARKANOID_DEVICE_POINTER:
                cur_x = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
@@ -716,7 +717,7 @@ static void update_input()
 
                cur_x = analog_x;
 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               input->paddle.button = input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
 
@@ -761,8 +762,8 @@ static void update_input()
                }
                break;
             case ZAPPER_DEVICE_MOUSE:
-               cur_x += input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-               cur_y += input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+               cur_x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+               cur_y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 
                if (cur_x < min_x)
                   cur_x = min_x;
@@ -774,7 +775,7 @@ static void update_input()
                else if (cur_y > max_y)
                   cur_y = max_y;
 
-               if (input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
+               if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
                {
                   input->zapper.x = cur_x;
                   input->zapper.y = cur_y;
@@ -841,7 +842,7 @@ static void update_input()
                cur_x = analog_x;
                cur_y = analog_y;
 
-               if (input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x;
                   input->zapper.y = cur_y;
