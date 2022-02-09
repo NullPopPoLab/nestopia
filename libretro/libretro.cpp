@@ -74,11 +74,8 @@ static float right_stick_speed=0.2f;
 static float analog_stick_deadzone=0.05f;
 float inv_analog_stick_acceleration = 1.0f/2048.0f;
 
-static enum {
-   SHOW_CROSSHAIR_DISABLED,
-   SHOW_CROSSHAIR_OFF,
-   SHOW_CROSSHAIR_ON,
-} show_crosshair;
+static bool enable_crosshair=false;
+static bool show_crosshair[4]={false,false,false,false};
 
 static bool libretro_supports_bitmasks = false;
 static bool show_advanced_av_settings = true;
@@ -89,7 +86,7 @@ size_t pitch;
 static Api::Video::Output *video;
 static Api::Sound::Output *audio;
 static Api::Input::Controllers *input;
-static unsigned input_type[4];
+static unsigned input_type[5];
 static Api::Machine::FavoredSystem favsystem;
 
 static void *sram;
@@ -218,8 +215,8 @@ static const byte nes_classic_fbx_fs_palette[64][3] =
   {0xB9,0xEA,0xE9}, {0xAB,0xAB,0xAB}, {0x00,0x00,0x00}, {0x00,0x00,0x00}
 };
 
-int crossx = 0;
-int crossy = 0;
+int crossx[4] = {0,0,0,0};
+int crossy[4] = {0,0,0,0};
 
 #define CROSSHAIR_SIZE 3
 
@@ -386,7 +383,7 @@ unsigned retro_api_version(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
-   if (port >= 4)
+   if (port >= 5)
       return;
 
    input_type[port] = device;
@@ -446,18 +443,17 @@ void retro_set_environment(retro_environment_t cb)
 /*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
+		/* note: Zapper,Arkanoid‚ðÚ‘±‰Â‚¾‚ªA main_device ‚ÅŒˆ’è‚·‚é */
    };
    static const struct retro_controller_description port2[] = {
 /*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
+		/* note: Zapper,Arkanoid‚ðÚ‘±‰Â‚¾‚ªA main_device ‚ÅŒˆ’è‚·‚é */
    };
    static const struct retro_controller_description port3[] = {
 /*      { "Auto", RETRO_DEVICE_AUTO },*/
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
-      { "Zapper", RETRO_DEVICE_ZAPPER },
-      { "Arkanoid", RETRO_DEVICE_ARKANOID },
-      { "None", RETRO_DEVICE_NONE },
       { NULL, 0 },
    };
    static const struct retro_controller_description port4[] = {
@@ -465,12 +461,40 @@ void retro_set_environment(retro_environment_t cb)
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
       { NULL, 0 },
    };
+   static const struct retro_controller_description portX[] = {
+/*      { "Auto", RETRO_DEVICE_AUTO },*/
+      { "None", RETRO_DEVICE_NONE },
+      { "Arkanoid", RETRO_DEVICE_ARKANOID },
+		/* todo */
+/*      { "FaimlyTrainer", RETRO_DEVICE_GAMEPAD },*/
+/*      { "FaimlyKeyboard", RETRO_DEVICE_GAMEPAD },*/
+/*      { "SuborKeyboard", RETRO_DEVICE_GAMEPAD },*/
+/*      { "DoremikkoKeyboard", RETRO_DEVICE_GAMEPAD },*/
+/*      { "HiroTrack", RETRO_DEVICE_GAMEPAD },*/
+/*      { "Pachinko", RETRO_DEVICE_GAMEPAD },*/
+/*      { "OekaKidsTablet", RETRO_DEVICE_GAMEPAD },*/
+/*      { "KonamiHyperShot", RETRO_DEVICE_GAMEPAD },*/
+/*      { "BandaiHyperShot", RETRO_DEVICE_GAMEPAD },*/
+/*      { "CrazyClimber", RETRO_DEVICE_GAMEPAD },*/
+/*      { "Mahjong", RETRO_DEVICE_GAMEPAD },*/
+/*      { "ExcitingBoxing", RETRO_DEVICE_GAMEPAD },*/
+/*      { "TopRider", RETRO_DEVICE_GAMEPAD },*/
+/*      { "PokkunMoguraa", RETRO_DEVICE_GAMEPAD },*/
+/*      { "PartyTap", RETRO_DEVICE_GAMEPAD },*/
+/*      { "TurboFile", RETRO_DEVICE_GAMEPAD },*/
+/*      { "BarCodeWorld", RETRO_DEVICE_GAMEPAD },*/
+		/* invalid */
+/*      { "Gamepad", RETRO_DEVICE_GAMEPAD },*/
+/*      { "Zapper", RETRO_DEVICE_ZAPPER },*/
+      { NULL, 0 },
+   };
 
    static const struct retro_controller_info ports[] = {
       { port1, 1 },
       { port2, 1 },
-      { port3, 4 },
+      { port3, 1 },
       { port4, 1 },
+      { portX, 2 },
       { NULL, 0 },
    };
 
@@ -521,6 +545,12 @@ typedef struct
 } keymap;
 
 static enum {
+	MAIN_GAMEPAD,
+	MAIN_ZAPPER,
+	MAIN_PADDLE,
+} main_device;
+
+static enum {
    ARKANOID_DEVICE_MOUSE,
    ARKANOID_DEVICE_POINTER,
    ARKANOID_DEVICE_STICK
@@ -566,19 +596,34 @@ static void update_input()
    input_poll_cb();
    input->pad[1].mic = 0;
    input->vsSystem.insertCoin = 0;
-   if (show_crosshair)
-      show_crosshair = SHOW_CROSSHAIR_OFF;
 
    int min_x = overscan_h ? 8 : 0;
    int max_x = overscan_h ? 247 : 255; 
    int min_y = overscan_v ? 8 : 0;
    int max_y = overscan_v ? 231 : 239;
 
-   static int cur_x = min_x;
-   static int cur_y = min_y;
+    static int cur_x[4] = {8,8,8,8};
+    static int cur_y[4] = {8,8,8,8};
 
    for (unsigned p = 0; p < 4; p++)
    {
+		switch (main_device)
+		{
+			case MAIN_GAMEPAD:
+            Api::Input(emulator).ConnectController(p, (Api::Input::Type) (p + 1));
+			break;
+
+			case MAIN_ZAPPER:
+            if(p<2)Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
+            else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
+			break;
+
+			case MAIN_PADDLE:
+            if(p<2)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
+            else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
+			break;
+		}
+#if 0
       switch (input_type[p])
       {
 /*         case  RETRO_DEVICE_AUTO:
@@ -597,10 +642,12 @@ static void update_input()
             Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
             break;
       }
+#endif
 
       Api::Input::Type connected_controller = Api::Input(emulator).GetConnectedController(p);
       if (connected_controller == p + 1)
       {
+		show_crosshair[p] = false;
          input->pad[p].buttons = 0;
          
          static unsigned tstate = 2;
@@ -678,21 +725,22 @@ static void update_input()
       }
       else if (connected_controller == Api::Input::PADDLE)
       {
+		show_crosshair[p] = false;
          switch (arkanoid_device)
          {
             case ARKANOID_DEVICE_MOUSE:
-               cur_x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
-               input->paddle.button = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+               cur_x[p] += input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
+               input->paddle.button = input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
                break;
             case ARKANOID_DEVICE_POINTER:
-               cur_x = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
-               cur_x = (cur_x + 0x7FFF) * max_x / (0x7FFF * 2);
+               cur_x[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+               cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
                input->paddle.button = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
                break;
             case ARKANOID_DEVICE_STICK:
-				static double analog_x=0.0f;
-				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				static double analog_x[4]={0,0,0,0};
+				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -713,46 +761,45 @@ static void update_input()
 					ax=0;
 				}
 
-				analog_x+=ax;
+				analog_x[p]+=ax;
 
-               cur_x = analog_x;
+               cur_x[p] = analog_x[p];
 
-               input->paddle.button = input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
 
-         if (cur_x < min_x)
-            cur_x = min_x;
-         else if (cur_x > max_x)
-            cur_x = max_x;
-         input->paddle.x = cur_x;
+         if (cur_x[p] < min_x)
+            cur_x[p] = min_x;
+         else if (cur_x[p] > max_x)
+            cur_x[p] = max_x;
+         input->paddle.x = cur_x[p];
       }
       else if (connected_controller == Api::Input::ZAPPER)
       {
          input->zapper.fire = 0;
-         if (show_crosshair)
-            show_crosshair = SHOW_CROSSHAIR_ON;
 
          switch (zapper_device)
          {
             case ZAPPER_DEVICE_LIGHTGUN:
+               show_crosshair[p] = false;
                if (!input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN))
                {
-                  cur_x = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
-                  cur_y = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
+                  cur_x[p] = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
+                  cur_y[p] = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
 
-                  cur_x = (cur_x + 0x7FFF) * max_x / (0x7FFF * 2);
-                  cur_y = (cur_y + 0x7FFF) * max_y / (0x7FFF * 2);
+                  cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
+                  cur_y[p] = (cur_y[p] + 0x7FFF) * max_y / (0x7FFF * 2);
                }
                else
                {
-                  cur_x = min_x;
-                  cur_y = min_y;
+                  cur_x[p] = min_x;
+                  cur_y[p] = min_y;
                }
 
                if (input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_TRIGGER)) {
-                  input->zapper.x = cur_x;
-                  input->zapper.y = cur_y;
+                  input->zapper.x = cur_x[p];
+                  input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
 
@@ -762,46 +809,51 @@ static void update_input()
                }
                break;
             case ZAPPER_DEVICE_MOUSE:
-               cur_x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-               cur_y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+               int mx=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+               int my=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y)
+               if(mx || my)show_crosshair[p] = enable_closshair;
+               cur_x[p] += mx;
+               cur_y[p] += my;
 
-               if (cur_x < min_x)
-                  cur_x = min_x;
-               else if (cur_x > max_x)
-                  cur_x = max_x;
+               if (cur_x[p] < min_x)
+                  cur_x[p] = min_x;
+               else if (cur_x[p] > max_x)
+                  cur_x[p] = max_x;
 
-               if (cur_y < min_y)
-                  cur_y = min_y;
-               else if (cur_y > max_y)
-                  cur_y = max_y;
+               if (cur_y[p] < min_y)
+                  cur_y[p] = min_y;
+               else if (cur_y[p] > max_y)
+                  cur_y[p] = max_y;
 
-               if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
+               if (input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
                {
-                  input->zapper.x = cur_x;
-                  input->zapper.y = cur_y;
+                  input->zapper.x = cur_x[p];
+                  input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
                break;
             case ZAPPER_DEVICE_POINTER:
-               cur_x = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
-               cur_y = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+               show_crosshair[p] = false;
+               cur_x[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+               cur_y[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
 
-               cur_x = (cur_x + 0x7FFF) * max_x / (0x7FFF * 2);
-               cur_y = (cur_y + 0x7FFF) * max_y / (0x7FFF * 2);
+               cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
+               cur_y[p] = (cur_y[p] + 0x7FFF) * max_y / (0x7FFF * 2);
 
                if (input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED))
                {
-                  input->zapper.x = cur_x;
-                  input->zapper.y = cur_y;
+                  input->zapper.x = cur_x[p];
+                  input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
                break;
             case ZAPPER_DEVICE_STICK:
-				static double analog_x=0.0f,analog_y=0.0f;
+				static double analog_x[4]={0,0,0,0},analog_y[4]={0,0,0,0};
 				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
 				int sly = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
 				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
 				int sry = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+                if(slx||sly||srx||sry)show_crosshair[p] = false;
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -826,38 +878,38 @@ static void update_input()
 					ax=ay=0;
 				}
 
-				analog_x+=ax;
-				analog_y+=ay;
+				analog_x[p]+=ax;
+				analog_y[p]+=ay;
 
-               if (analog_x < min_x)
-                  analog_x = min_x;
-               else if (analog_x > max_x)
-                  analog_x = max_x;
+               if (analog_x[p] < min_x)
+                  analog_x[p] = min_x;
+               else if (analog_x[p] > max_x)
+                  analog_x[p] = max_x;
 
-               if (analog_y < min_y)
-                  analog_y = min_y;
-               else if (analog_y > max_y)
-                  analog_y = max_y;
+               if (analog_y[p] < min_y)
+                  analog_y[p] = min_y;
+               else if (analog_y[p] > max_y)
+                  analog_y[p] = max_y;
 
-               cur_x = analog_x;
-               cur_y = analog_y;
+               cur_x[p] = analog_x[p];
+               cur_y[p] = analog_y[p];
 
                if (input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
-                  input->zapper.x = cur_x;
-                  input->zapper.y = cur_y;
+                  input->zapper.x = cur_x[p];
+                  input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
                break;
          }
 
-         if (cur_x > max_x) { crossx = max_x; }
-         else if (cur_x < min_x) { crossx = min_x; }
-         else { crossx = cur_x; }
+         if (cur_x[p] > max_x) { crossx[p] = max_x; }
+         else if (cur_x[p] < min_x) { crossx[p] = min_x; }
+         else { crossx[p] = cur_x[p]; }
 
-         if (cur_y > max_y) { crossy = max_y; }
-         else if (cur_y < min_y) { crossy = min_y; }
-         else { crossy = cur_y; }
+         if (cur_y[p] > max_y) { crossy[p] = max_y; }
+         else if (cur_y[p] < min_y) { crossy[p] = min_y; }
+         else { crossy[p] = cur_y[p]; }
       }
    }
 }
@@ -874,6 +926,16 @@ static void check_variables(void)
    Api::Video::RenderState renderState;
    Api::Machine machine(emulator);
    Api::Video::RenderState::Filter filter;
+
+   var.key = "nestopia_main_device";
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      if (strcmp(var.value, "zapper") == 0)
+         main_device = MAIN_ZAPPER;
+      if (strcmp(var.value, "paddle") == 0)
+         main_device = MAIN_PADDLE;
+      else main_device = MAIN_GAMEPAD;
+   }
 
    var.key = "nestopia_arkanoid_device";
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
@@ -903,9 +965,9 @@ static void check_variables(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
    {
       if (strcmp(var.value, "disabled") == 0)
-         show_crosshair = SHOW_CROSSHAIR_DISABLED;
+         enable_crosshair = false;
       else
-         show_crosshair = SHOW_CROSSHAIR_OFF;
+         enable_crosshair = true;
    }
 
    var.key = "nestopia_left_stick_speed";
@@ -1368,9 +1430,11 @@ void retro_run(void)
    update_input();
    emulator.Execute(video, audio, input);
 
-   if (show_crosshair == SHOW_CROSSHAIR_ON)
-      draw_crosshair(crossx, crossy);
-   
+	for(unsigned i=0;i<4;++i){
+		if(!show_crosshair[i])continue;
+		draw_crosshair(crossx[i], crossy[i]);
+  	}
+
    unsigned frames = is_pal ? SAMPLERATE / 50 : SAMPLERATE / 60;
    for (unsigned i = 0; i < frames; i++)
       audio_stereo_buffer[(i << 1) + 0] = audio_stereo_buffer[(i << 1) + 1] = audio_buffer[i];

@@ -204,6 +204,21 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       "disabled"
    },
    {
+      "nestopia_main_device",
+      "Main Control Device",
+      NULL,
+      "Controller type of port 1,2.",
+      NULL,
+      "input",
+      {
+         { "gamepad",  "Game pad" },
+         { "zapper",  "Zapper" },
+         { "paddle",  "Arkanoid" },
+         { NULL, NULL },
+      },
+      "gamepad",
+   },
+   {
       "nestopia_arkanoid_device",
       "Arkanoid device",
       NULL,
