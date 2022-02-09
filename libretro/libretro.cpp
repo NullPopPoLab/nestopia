@@ -442,7 +442,6 @@ void retro_set_environment(retro_environment_t cb)
    libretro_set_core_options(environ_cb,
          &libretro_supports_option_categories);
 
-#if 0
    static const struct retro_controller_description port1[] = {
       { "Auto", RETRO_DEVICE_AUTO },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
@@ -475,7 +474,6 @@ void retro_set_environment(retro_environment_t cb)
    };
 
    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void *)ports);
-#endif
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -692,8 +690,8 @@ static void update_input()
                break;
             case ARKANOID_DEVICE_STICK:
 				static double analog_x=0.0f;
-				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -718,7 +716,7 @@ static void update_input()
 
                cur_x = analog_x;
 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               input->paddle.button = input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
 
@@ -799,10 +797,10 @@ static void update_input()
                break;
             case ZAPPER_DEVICE_STICK:
 				static double analog_x=0.0f,analog_y=0.0f;
-				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int sly = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
-				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
-				int sry = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int sly = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int sry = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -843,7 +841,7 @@ static void update_input()
                cur_x = analog_x;
                cur_y = analog_y;
 
-               if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x;
                   input->zapper.y = cur_y;
