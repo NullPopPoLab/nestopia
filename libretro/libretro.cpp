@@ -33,8 +33,8 @@
 
 /*#define RETRO_DEVICE_AUTO RETRO_DEVICE_JOYPAD*/
 #define RETRO_DEVICE_GAMEPAD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
-#define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
-#define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_POINTER, 0)
+#define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1)
+#define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 2)
 
 using namespace Nes;
 
@@ -731,18 +731,18 @@ static void update_input()
          switch (arkanoid_device)
          {
             case ARKANOID_DEVICE_MOUSE:
-               cur_x[p] += input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+               cur_x[p] += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X); 
+               input->paddle.button = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
                break;
             case ARKANOID_DEVICE_POINTER:
-               cur_x[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+               cur_x[p] = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
                cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+               input->paddle.button = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
                break;
             case ARKANOID_DEVICE_STICK:
 				static double analog_x[4]={0,0,0,0};
-				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
 
@@ -767,7 +767,7 @@ static void update_input()
 
                cur_x[p] = analog_x[p];
 
-               input->paddle.button = input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+               input->paddle.button = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
                break;
          }
 
@@ -785,10 +785,10 @@ static void update_input()
          {
             case ZAPPER_DEVICE_LIGHTGUN:
                show_crosshair[p] = false;
-               if (!input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN))
+               if (!input_state_cb(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN))
                {
-                  cur_x[p] = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
-                  cur_y[p] = input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
+                  cur_x[p] = input_state_cb(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
+                  cur_y[p] = input_state_cb(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
 
                   cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
                   cur_y[p] = (cur_y[p] + 0x7FFF) * max_y / (0x7FFF * 2);
@@ -799,20 +799,20 @@ static void update_input()
                   cur_y[p] = min_y;
                }
 
-               if (input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_TRIGGER)) {
+               if (input_state_cb(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_TRIGGER)) {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
 
-               if (input_state_cb(p, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_RELOAD)) {
+               if (input_state_cb(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_RELOAD)) {
                   input->zapper.x = ~1U;
                   input->zapper.fire = 1;
                }
                break;
             case ZAPPER_DEVICE_MOUSE:{
-               int mx=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-               int my=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+               int mx=input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+               int my=input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
                if(mx || my)show_crosshair[p] = enable_crosshair;
                cur_x[p] += mx;
                cur_y[p] += my;
@@ -827,7 +827,7 @@ static void update_input()
                else if (cur_y[p] > max_y)
                   cur_y[p] = max_y;
 
-               if (input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
+               if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
                {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
@@ -836,13 +836,13 @@ static void update_input()
                }break;
             case ZAPPER_DEVICE_POINTER:
                show_crosshair[p] = false;
-               cur_x[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
-               cur_y[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+               cur_x[p] = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+               cur_y[p] = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
 
                cur_x[p] = (cur_x[p] + 0x7FFF) * max_x / (0x7FFF * 2);
                cur_y[p] = (cur_y[p] + 0x7FFF) * max_y / (0x7FFF * 2);
 
-               if (input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED))
+               if (input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED))
                {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
@@ -851,10 +851,10 @@ static void update_input()
                break;
             case ZAPPER_DEVICE_STICK:{
 				static double analog_x[4]={0,0,0,0},analog_y[4]={0,0,0,0};
-				int slx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-				int sly = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
-				int srx = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
-				int sry = input_state_cb(p, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				int sly = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+				int srx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				int sry = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
                 if(slx||sly||srx||sry)show_crosshair[p] = enable_crosshair;
 				double speed_l=left_stick_speed*inv_analog_stick_acceleration;
 				double speed_r=right_stick_speed*inv_analog_stick_acceleration;
@@ -896,7 +896,7 @@ static void update_input()
                cur_x[p] = analog_x[p];
                cur_y[p] = analog_y[p];
 
-               if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
