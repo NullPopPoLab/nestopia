@@ -617,13 +617,13 @@ static void update_input()
 			break;
 
 			case MAIN_ZAPPER:
-            if(p<1)Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
+            if(p==1)Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
             else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
 			break;
 
 			case MAIN_PADDLE:
 			show_crosshair[p] = false;
-            if(p<1)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
+            if(p==1)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
             else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
 			break;
 		}
@@ -649,7 +649,7 @@ static void update_input()
 #endif
 
       Api::Input::Type connected_controller = Api::Input(emulator).GetConnectedController(p);
-      if (connected_controller != Api::Input::UNCONNECTED)
+      if (connected_controller == (Api::Input::Type) (p + 1))
       {
          input->pad[p].buttons = 0;
          
@@ -726,7 +726,7 @@ static void update_input()
             prevR = curR;
          }
       }
-      if (connected_controller == Api::Input::PADDLE)
+      else if (connected_controller == Api::Input::PADDLE)
       {
          switch (arkanoid_device)
          {
@@ -896,7 +896,7 @@ static void update_input()
                cur_x[p] = analog_x[p];
                cur_y[p] = analog_y[p];
 
-               if (input_state_cb(p, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_JOYPAD_R))
+               if (input_state_cb(p, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R))
                {
                   input->zapper.x = cur_x[p];
                   input->zapper.y = cur_y[p];
