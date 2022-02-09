@@ -32,7 +32,7 @@
 #define SAMPLERATE 48000
 
 /*#define RETRO_DEVICE_AUTO RETRO_DEVICE_JOYPAD*/
-#define RETRO_DEVICE_GAMEPAD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0)
+#define RETRO_DEVICE_GAMEPAD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 0)
 #define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
 #define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_POINTER, 0)
 
@@ -617,13 +617,13 @@ static void update_input()
 			break;
 
 			case MAIN_ZAPPER:
-            if(p<2)Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
+            if(p<1)Api::Input(emulator).ConnectController(p, Api::Input::ZAPPER);
             else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
 			break;
 
 			case MAIN_PADDLE:
 			show_crosshair[p] = false;
-            if(p<2)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
+            if(p<1)Api::Input(emulator).ConnectController(p, Api::Input::PADDLE);
             else Api::Input(emulator).ConnectController(p, Api::Input::UNCONNECTED);
 			break;
 		}
