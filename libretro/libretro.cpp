@@ -810,7 +810,7 @@ static void update_input()
                   input->zapper.fire = 1;
                }
                break;
-            case ZAPPER_DEVICE_MOUSE:
+            case ZAPPER_DEVICE_MOUSE:{
                int mx=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
                int my=input_state_cb(p, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
                if(mx || my)show_crosshair[p] = enable_crosshair;
@@ -833,7 +833,7 @@ static void update_input()
                   input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
-               break;
+               }break;
             case ZAPPER_DEVICE_POINTER:
                show_crosshair[p] = false;
                cur_x[p] = input_state_cb(p, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
@@ -849,7 +849,7 @@ static void update_input()
                   input->zapper.fire = 1;
                }
                break;
-            case ZAPPER_DEVICE_STICK:
+            case ZAPPER_DEVICE_STICK:{
 				static double analog_x[4]={0,0,0,0},analog_y[4]={0,0,0,0};
 				int slx = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
 				int sly = input_state_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
@@ -902,7 +902,7 @@ static void update_input()
                   input->zapper.y = cur_y[p];
                   input->zapper.fire = 1;
                }
-               break;
+               }break;
          }
 
          if (cur_x[p] > max_x) { crossx[p] = max_x; }
