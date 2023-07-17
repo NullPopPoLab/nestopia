@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <sstream>
 #include <fstream>
+#include <sys/stat.h>
 
 #include "../source/core/api/NstApiMachine.hpp"
 #include "../source/core/api/NstApiEmulator.hpp"
@@ -390,7 +391,7 @@ static void NST_CALLBACK file_io_callback(void*, Api::User::File &file)
       case Api::User::File::LOAD_FDS:
          {
             char base[256];
-            sprintf(base, "%s%c%s.sav", g_save_dir, slash, g_basename);
+            sprintf(base, "%s%c%s%cnestopia_disk.sav", g_save_dir, slash, g_basename, slash);
             if (log_cb)
                log_cb(RETRO_LOG_INFO, "Want to load FDS sav from: %s\n", base);
             std::ifstream in_tmp(base,std::ifstream::in|std::ifstream::binary);
@@ -404,7 +405,9 @@ static void NST_CALLBACK file_io_callback(void*, Api::User::File &file)
       case Api::User::File::SAVE_FDS:
          {
             char base[256];
-            sprintf(base, "%s%c%s.sav", g_save_dir, slash, g_basename);
+            sprintf(base, "%s%c%s", g_save_dir, slash, g_basename);
+			mkdir(base,0777);
+			strncat(base, "/nestopia_disk.sav", sizeof(base));
             if (log_cb)
                log_cb(RETRO_LOG_INFO, "Want to save FDS sav to: %s\n", base);
             std::ofstream out_tmp(base,std::ifstream::out|std::ifstream::binary);
@@ -1370,19 +1373,24 @@ void retro_run(void)
 
 static void extract_basename(char *buf, const char *path, size_t size)
 {
-   const char *base = strrchr(path, '/');
-   if (!base)
-      base = strrchr(path, '\\');
-   if (!base)
-      base = path;
-
-   if (*base == '\\' || *base == '/')
-      base++;
+   char       *ext  = NULL;
+   const char *base1 = strrchr(path, '/');
+   const char *base2 = strrchr(path, '\\');
+   const char *base3 = strrchr(path, '#');
+   const char *base=NULL;
+	if(base1>base)base=base1;
+	if(base2>base)base=base2;
+	if(base3>base)base=base3;
+	if(!base){
+		*buf=0;
+		return;
+	}
+   base++;
 
    strncpy(buf, base, size - 1);
    buf[size - 1] = '\0';
 
-   char *ext = strrchr(buf, '.');
+   ext = strrchr(buf, '.');
    if (ext)
       *ext = '\0';
 }
