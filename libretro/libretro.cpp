@@ -1557,7 +1557,7 @@ bool retro_load_game(const struct retro_game_info *info)
          /* search for BIOS in system directory */
          bool found = false;
 
-         sprintf(fds_bios_path, "%s%cnes/disksys.rom", dir, slash);
+         sprintf(fds_bios_path, "%s%cdisksys.rom", dir, slash);
          if (log_cb)
             log_cb(RETRO_LOG_INFO, "FDS BIOS path: %s\n", fds_bios_path);
 
