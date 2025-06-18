@@ -23,6 +23,7 @@
 #include "nstdatabase.hpp"
 
 #define NST_VERSION "1.52.0"
+#define CUSTOM_VERSION "+NC41"
 
 #define MIN(a,b)      ((a)<(b)?(a):(b))
 #define MAX(a,b)      ((a)>(b)?(a):(b))
@@ -447,9 +448,9 @@ void retro_get_system_info(struct retro_system_info *info)
    memset(info, 0, sizeof(*info));
    info->library_name     = "Nestopia";
 #ifdef GIT_VERSION
-   info->library_version  = NST_VERSION GIT_VERSION;
+   info->library_version  = NST_VERSION GIT_VERSION CUSTOM_VERSION;
 #else
-   info->library_version  = NST_VERSION;
+   info->library_version  = NST_VERSION CUSTOM_VERSION;
 #endif
    info->need_fullpath    = false;
    info->valid_extensions = "nes|fds|unf|unif";
