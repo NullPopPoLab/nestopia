@@ -626,7 +626,7 @@ static bool NST_CALLBACK gamepad_callback(Api::Base::UserData data, Core::Input:
    bool pressed_l3        = false;
 
    uint buttons = 0;
-   int16_t ret = 0;
+   int32_t ret = 0;
 
    if (libretro_supports_bitmasks)
       ret = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
