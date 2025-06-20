@@ -69,6 +69,7 @@ static int overscan_h_left, overscan_h_right;
 static bool libretro_supports_option_categories = false;
 static unsigned aspect_ratio_mode;
 static unsigned tpulse; // A/B Button turbo pulse width in frames
+static int fds_selected=0;
 
 static unsigned char tstate[4] = { 2, 2, 2, 2 }; // A/B Button turbo pulse width counter 0 => lo, !0 => hi, in range [0, tpulse]
 static int cur_x = 0; // Absolute x coordinate of zapper/arkanoid in pixels
@@ -266,6 +267,75 @@ void draw_crosshair(int x, int y)
    }
 }
 
+static bool disk_set_eject_state( bool ejected )
+{
+	if(ejected){
+		fds->EjectDisk();
+	}
+	else{
+		fds->InsertDisk(fds_selected>>1, fds_selected&1);
+		return fds->IsAnyDiskInserted();
+	}    
+	return true;
+}
+
+static bool disk_get_eject_state(void)
+{
+	return !fds->IsAnyDiskInserted();
+}
+
+static bool disk_set_image_index(unsigned index)
+{
+	fds_selected=index;
+	return true;
+}
+
+unsigned disk_get_image_index(void)
+{
+	return fds_selected;
+}
+
+static unsigned disk_get_num_images(void)
+{
+	return fds->GetNumSides();
+}
+
+static unsigned disk_get_num_drives(void)
+{
+	return 1;
+}
+
+static bool disk_get_image_label(unsigned index, char *label, size_t len)
+{
+	if(index>=fds->GetNumSides())return false;
+	snprintf(label,len,"Disk %u Side %c",(index>>1)+1,(index&1)?'B':'A');
+	return true;
+}
+
+static int disk_get_drive_image_index(unsigned drive)
+{
+	if(!fds->IsAnyDiskInserted())return -1;
+	return fds->GetCurrentDiskSide();
+}
+
+static struct retro_disk_control_ext2_callback disk_interface =
+{
+	disk_set_eject_state,
+	disk_get_eject_state,
+	disk_get_image_index,
+	disk_set_image_index,
+	disk_get_num_images,
+	0, /* disk_replace_image_index */
+	0, /* add_image_index */
+	0, /* set_initial_image */
+	0, /* get_image_path */
+	disk_get_image_label,
+	disk_get_num_drives,
+	0, /* set_drive_eject_state */
+	0, /* get_drive_eject_state */
+	disk_get_drive_image_index
+};
+
 static void load_wav(const char* sampgame, Api::User::File& file)
 {
    char samp_path[292];
@@ -393,6 +463,8 @@ void retro_init(void)
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
+
+   environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT2_INTERFACE, &disk_interface);
 
    check_system_specs();
 }
@@ -571,6 +643,7 @@ void retro_reset(void)
       fds->EjectDisk();
       if (fds_auto_insert)
          fds->InsertDisk(0, 0);
+      if(fds->IsAnyDiskInserted())fds_selected=fds->GetCurrentDiskSide();
    }
 }
 
@@ -812,53 +885,6 @@ static bool NST_CALLBACK zapper_callback(Api::Base::UserData data, Core::Input::
    else { crossy = cur_y; }
 
    return true;
-}
-
-static void poll_fds_buttons()
-{
-   if (machine->Is(Nes::Api::Machine::DISK))
-   {
-      input_poll_cb();
-
-      bool pressed_l         = false;
-      bool pressed_r         = false;
-
-      int16_t ret = 0;
-      if (libretro_supports_bitmasks)
-      {
-         ret = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
-         pressed_l           = ret & (1 << RETRO_DEVICE_ID_JOYPAD_L);
-         pressed_r           = ret & (1 << RETRO_DEVICE_ID_JOYPAD_R);
-      }
-      else
-      {
-         pressed_l           = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
-         pressed_r           = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
-      }
-
-      bool curL         = pressed_l;
-      bool prevL = false;
-
-      if (curL && !prevL)
-      {
-         if (!fds->IsAnyDiskInserted())
-            fds->InsertDisk(0, 0);
-         else if (fds->CanChangeDiskSide())
-            fds->ChangeSide();
-      }
-      prevL = curL;
-
-      bool curR         = pressed_r;
-      bool prevR = false;
-
-      if (curR && !prevR && (fds->GetNumDisks() > 1))
-      {
-         int currdisk = fds->GetCurrentDisk();
-         fds->EjectDisk();
-         fds->InsertDisk(!currdisk, 0);
-      }
-      prevR = curR;
-   }
 }
 
 static void check_variables(void)
@@ -1360,7 +1386,6 @@ static void check_variables(void)
 
 void retro_run(void)
 {
-   poll_fds_buttons();
    emulator.Execute(video, audio, input);
 
    if (show_crosshair == SHOW_CROSSHAIR_ON)
@@ -1457,8 +1482,6 @@ bool retro_load_game(const struct retro_game_info *info)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "(VSSystem) Coin 1" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "(VSSystem) Coin 2" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "(Famicom) Microphone" },
@@ -1473,8 +1496,6 @@ bool retro_load_game(const struct retro_game_info *info)
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
@@ -1486,8 +1507,6 @@ bool retro_load_game(const struct retro_game_info *info)
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
@@ -1499,8 +1518,6 @@ bool retro_load_game(const struct retro_game_info *info)
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Turbo A" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Turbo B" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "(FDS) Disk Side Change" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "(FDS) Eject Disk" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
       { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
