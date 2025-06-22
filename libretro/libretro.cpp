@@ -37,6 +37,8 @@
 #define RETRO_DEVICE_ARKANOID RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0)
 #define RETRO_DEVICE_ZAPPER RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_POINTER, 0)
 
+#define RETRO_DEVICE_JOYPAD_DUAL  RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 4)
+
 using namespace Nes;
 
 static retro_log_printf_t log_cb;
@@ -101,6 +103,10 @@ static unsigned long sram_size;
 static bool is_pal;
 static byte custpal[64*3];
 static char slash;
+static bool dualpad=false;
+
+static void set_input_desc_gamepad();
+static void set_input_desc_dual();
 
 static const byte cxa2025as_palette[64][3] =
 {
@@ -489,7 +495,15 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
       case RETRO_DEVICE_NONE:
          Api::Input(emulator).ConnectController(port, Api::Input::UNCONNECTED);
          break;
+      case RETRO_DEVICE_JOYPAD_DUAL:
+		if(port==0)dualpad=true;
+		set_input_desc_dual();
+         Api::Input(emulator).ConnectController(0, Api::Input::PAD1);
+         Api::Input(emulator).ConnectController(1, Api::Input::PAD2);
+         break;
       case RETRO_DEVICE_GAMEPAD:
+		if(port==0)dualpad=false;
+		set_input_desc_gamepad();
          switch (port)
          {
             case 0:
@@ -578,6 +592,7 @@ void retro_set_environment(retro_environment_t cb)
    static const struct retro_controller_description port1[] = {
       { "Auto", RETRO_DEVICE_AUTO },
       { "Gamepad", RETRO_DEVICE_GAMEPAD },
+      { "Dual", RETRO_DEVICE_JOYPAD_DUAL },
       { NULL, 0 },
    };
    static const struct retro_controller_description port2[] = {
@@ -599,7 +614,7 @@ void retro_set_environment(retro_environment_t cb)
    };
 
    static const struct retro_controller_info ports[] = {
-      { port1, 2 },
+      { port1, 3 },
       { port2, 4 },
       { port3, 2 },
       { port4, 2 },
@@ -690,6 +705,32 @@ static keymap bindmap_shifted[] = {
    { RETRO_DEVICE_ID_JOYPAD_RIGHT, Core::Input::Controllers::Pad::RIGHT },
 };
 
+static keymap bindmap_dual1[] = {
+   { RETRO_DEVICE_ID_JOYPAD_L0, Core::Input::Controllers::Pad::A },
+   { RETRO_DEVICE_ID_JOYPAD_L, Core::Input::Controllers::Pad::B },
+   { RETRO_DEVICE_ID_JOYPAD_L4, Core::Input::Controllers::Pad::A },
+   { RETRO_DEVICE_ID_JOYPAD_L5, Core::Input::Controllers::Pad::B },
+   { RETRO_DEVICE_ID_JOYPAD_SELECT, Core::Input::Controllers::Pad::SELECT },
+   { RETRO_DEVICE_ID_JOYPAD_G1, Core::Input::Controllers::Pad::START },
+   { RETRO_DEVICE_ID_JOYPAD_UP, Core::Input::Controllers::Pad::UP },
+   { RETRO_DEVICE_ID_JOYPAD_DOWN, Core::Input::Controllers::Pad::DOWN },
+   { RETRO_DEVICE_ID_JOYPAD_LEFT, Core::Input::Controllers::Pad::LEFT },
+   { RETRO_DEVICE_ID_JOYPAD_RIGHT, Core::Input::Controllers::Pad::RIGHT },
+};
+
+static keymap bindmap_dual2[] = {
+   { RETRO_DEVICE_ID_JOYPAD_R0, Core::Input::Controllers::Pad::A },
+   { RETRO_DEVICE_ID_JOYPAD_R, Core::Input::Controllers::Pad::B },
+   { RETRO_DEVICE_ID_JOYPAD_R4, Core::Input::Controllers::Pad::A },
+   { RETRO_DEVICE_ID_JOYPAD_R5, Core::Input::Controllers::Pad::B },
+   { RETRO_DEVICE_ID_JOYPAD_START, Core::Input::Controllers::Pad::SELECT },
+   { RETRO_DEVICE_ID_JOYPAD_G2, Core::Input::Controllers::Pad::START },
+   { RETRO_DEVICE_ID_JOYPAD_X, Core::Input::Controllers::Pad::UP },
+   { RETRO_DEVICE_ID_JOYPAD_B, Core::Input::Controllers::Pad::DOWN },
+   { RETRO_DEVICE_ID_JOYPAD_Y, Core::Input::Controllers::Pad::LEFT },
+   { RETRO_DEVICE_ID_JOYPAD_A, Core::Input::Controllers::Pad::RIGHT },
+};
+
 static keymap *bindmap = bindmap_default;
 
 static bool NST_CALLBACK gamepad_callback(Api::Base::UserData data, Core::Input::Controllers::Pad& pad, unsigned int port)
@@ -700,33 +741,42 @@ static bool NST_CALLBACK gamepad_callback(Api::Base::UserData data, Core::Input:
 
    uint buttons = 0;
    int32_t ret = 0;
+   int portdev=dualpad?0:port;
+   keymap* bm=bindmap;
 
    if (libretro_supports_bitmasks)
-      ret = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+      ret = input_state_cb(portdev, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
    else
    {
       for (unsigned i = 0; i < RETRO_DEVICE_ID_JOYPAD_BUTTON_MAX; i++)
-         ret |= input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, i) ? (1 << i) : 0;
+         ret |= input_state_cb(portdev, RETRO_DEVICE_JOYPAD, 0, i) ? (1 << i) : 0;
    }
 
-   for (unsigned bind = 0; bind < sizeof(bindmap_default) / sizeof(bindmap[0]); bind++)
-      buttons |= (ret & (1 << bindmap[bind].retro)) ? bindmap[bind].nes : 0;
-
-	// A+B 
-	if(ret & (1 << RETRO_DEVICE_ID_JOYPAD_C)){
-		buttons |= Core::Input::Controllers::Pad::A | Core::Input::Controllers::Pad::B;
+	if(dualpad){
+		bm=port?bindmap_dual2:bindmap_dual1;
 	}
 
+   for (unsigned bind = 0; bind < sizeof(bindmap_default) / sizeof(bindmap_default[0]); bind++)
+      buttons |= (ret & (1 << bm[bind].retro)) ? bm[bind].nes : 0;
+
    // turbo A 
-   if (ret & (1 << bindmap[2].retro))
+   if (ret & (1 << bm[2].retro))
       tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::A : buttons |= Core::Input::Controllers::Pad::A;
    // turbo B 
-   if (ret & (1 << bindmap[3].retro))
+   if (ret & (1 << bm[3].retro))
       tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::B : buttons |= Core::Input::Controllers::Pad::B;
-	// turbo A+B 
-	if(ret & (1 << RETRO_DEVICE_ID_JOYPAD_Z)){
-      tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::A : buttons |= Core::Input::Controllers::Pad::A;
-      tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::B : buttons |= Core::Input::Controllers::Pad::B;
+
+	if(!dualpad){
+		// A+B 
+		if(ret & (1 << RETRO_DEVICE_ID_JOYPAD_C)){
+			buttons |= Core::Input::Controllers::Pad::A | Core::Input::Controllers::Pad::B;
+		}
+
+		// turbo A+B 
+		if(ret & (1 << RETRO_DEVICE_ID_JOYPAD_Z)){
+	      tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::A : buttons |= Core::Input::Controllers::Pad::A;
+	      tstate[port] ? buttons &= ~Core::Input::Controllers::Pad::B : buttons |= Core::Input::Controllers::Pad::B;
+		}
 	}
 
    pad.buttons = buttons;
@@ -1472,20 +1522,8 @@ static void extract_directory(char *buf, const char *path, size_t size)
       buf[0] = '\0';
 }
 
-
-bool retro_load_game(const struct retro_game_info *info)
+void set_input_desc_gamepad()
 {
-   const char *dir;
-   char slash;
-   char db_path[256];
-   char palette_path[256];
-   
-#if defined(_WIN32)
-   slash = '\\';
-#else
-   slash = '/';
-#endif
-
    struct retro_input_descriptor desc[] = {
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
@@ -1545,6 +1583,59 @@ bool retro_load_game(const struct retro_game_info *info)
       { 0 },
    };
 
+   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
+}
+
+void set_input_desc_dual()
+{
+   struct retro_input_descriptor desc[] = {
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "P1 D-Pad Left" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "P1 D-Pad Up" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "P1 D-Pad Down" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "P1 D-Pad Right" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L0,    "P1 A" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "P1 B" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L4,    "P1 Turbo A" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L5,    "P1 Turbo B" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "P1 (VSSystem) Coin 1" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,    "P1 (VSSystem) Coin 2" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "P1 (Famicom) Microphone" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,"P1 Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_G1,    "P1 Start" },
+
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "P2 D-Pad Left" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "P2 D-Pad Up" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "P2 D-Pad Down" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "P2 D-Pad Right" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R0,    "P2 A" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "P2 B" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R4,    "P2 Turbo A" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R5,    "P2 Turbo B" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "P2 Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_G2,    "P2 Start" },
+
+      { 0 },
+   };
+
+   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
+}
+
+bool retro_load_game(const struct retro_game_info *info)
+{
+   const char *dir;
+   char slash;
+   char db_path[256];
+   char palette_path[256];
+   
+#if defined(_WIN32)
+   slash = '\\';
+#else
+   slash = '/';
+#endif
+
+	set_input_desc_gamepad();
+
+
 #ifdef _3DS
    video_buffer = (uint32_t*)linearMemAlign(Api::Video::Output::NTSC_WIDTH * Api::Video::Output::HEIGHT * sizeof(uint32_t), 0x80);
 #else
@@ -1554,8 +1645,6 @@ bool retro_load_game(const struct retro_game_info *info)
    machine = new Api::Machine(emulator);
    input = new Api::Input::Controllers;
    Api::User::fileIoCallback.Set(file_io_callback, 0);
-
-   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
 
    if (!environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) || !dir)
       return false;
